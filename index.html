@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -239,7 +239,11 @@
     text-align:center;
     padding:20px 18px;
     margin-bottom:22px;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .7s ease, transform .7s ease;
   }
+  .bridge.show{opacity:1; transform:translateY(0);}
   .bridge .quote{
     font-family:'Fraunces',serif;
     font-style:italic;
@@ -249,13 +253,62 @@
   }
   .bridge .quote .accent{color:var(--beige); font-style:normal; font-weight:600;}
 
+  .suspense{
+    text-align:center;
+    padding:6px 10px 4px;
+    margin-bottom:4px;
+    min-height:24px;
+  }
+  .suspense span{
+    font-size:13.5px;
+    color:var(--muted);
+    font-style:italic;
+  }
+  .suspense .dots::after{
+    content:'';
+    display:inline-block;
+    animation:dots 1.4s steps(4,end) infinite;
+  }
+  @keyframes dots{
+    0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';}
+  }
+
+  .social-proof{
+    display:flex; align-items:center; gap:8px; justify-content:center;
+    font-size:12px; color:var(--muted);
+    margin-bottom:14px;
+    opacity:0; transform:translateY(6px);
+    transition:opacity .7s ease .15s, transform .7s ease .15s;
+  }
+  .social-proof.show{opacity:1; transform:translateY(0);}
+  .social-proof .dot{width:6px; height:6px; border-radius:50%; background:var(--strong); flex-shrink:0;}
+  .social-proof b{color:var(--gold-soft); font-weight:600;}
+
+  .urgency-banner{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(181,80,46,0.14);
+    border:1px solid var(--weak);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:16px;
+    font-size:12.5px;
+    color:#E8B79A;
+    opacity:0; transform:translateY(6px);
+    transition:opacity .7s ease .3s, transform .7s ease .3s;
+  }
+  .urgency-banner.show{opacity:1; transform:translateY(0);}
+  .urgency-banner b{color:var(--gold-soft);}
+
   .offer-card{
     background:var(--panel);
     border:1px solid var(--gold);
     border-radius:16px;
     padding:24px 20px;
     margin-bottom:16px;
+    opacity:0; transform:translateY(8px);
+    transition:opacity .7s ease .3s, transform .7s ease .3s;
   }
+  .offer-card.show{opacity:1; transform:translateY(0);}
   .offer-card .offer-tag{
     display:inline-block;
     font-size:10.5px;
@@ -424,7 +477,11 @@
 
     <div class="verdict" id="verdictText"></div>
 
-    <div class="bridge">
+    <div class="suspense" id="suspenseText">
+      <span>Analyse de ton profil<span class="dots"></span></span>
+    </div>
+
+    <div class="bridge" id="bridgeBlock">
       <p class="quote" id="bridgeQuote"></p>
     </div>
 
@@ -432,7 +489,16 @@
       ⚠️ Liens paiement / RDV non configurés — remplace PAYMENT_LINK_URL et BOOKING_LINK_URL dans le code par tes vrais liens (Stripe Payment Link + Calendly).
     </div>
 
-    <div class="offer-card">
+    <div class="social-proof" id="socialProof">
+      <span class="dot"></span>
+      <span>Déjà <b id="playersCount">—</b> joueurs accompagnés par Y.E.S.I CONCEPT</span>
+    </div>
+
+    <div class="urgency-banner" id="urgencyBanner">
+      🔥 <span><b id="spotsLeft">—</b> créneaux de Bilan Y.E.S.I 360° disponibles ce mois-ci</span>
+    </div>
+
+    <div class="offer-card" id="offerCard">
       <span class="offer-tag">Offre payante</span>
       <h2>Bilan Y.E.S.I 360°</h2>
       <p>Ton potentiel technique est posé. Reste à savoir si ta tête suit ton pied. Le Bilan Y.E.S.I 360° croise ton profil technique avec ton profil mental sur les 4 axes Y.E.S.I, pour un diagnostic complet et un plan d'action personnalisé.</p>
@@ -476,6 +542,8 @@
 /* ============ CONFIGURATION — À REMPLACER ============ */
 const PAYMENT_LINK_URL = "https://buy.stripe.com/bJe28qbqSeXC4WqftI8k80c";
 const BOOKING_LINK_URL = "https://calendly.com/yesiconcept-rdv/bilan-yesi";
+const PLAYERS_COACHED = 20;   // nombre réel de joueurs déjà accompagnés — à ajuster régulièrement
+const SPOTS_LEFT = 5;         // nombre de créneaux restants ce mois-ci — à ajuster manuellement chaque mois
 /* ======================================================= */
 
 const AXES = [
@@ -620,6 +688,14 @@ function renderResults(axisPercents, globalPercent, cat, catColor, weakestAxis, 
   document.getElementById('globalCat').style.color = catColor;
   document.getElementById('globalScore').textContent = `Score global : ${globalPercent}/100`;
 
+  // reset des états de reveal (si l'utilisateur relance un calcul)
+  const suspenseReset = document.getElementById('suspenseText');
+  suspenseReset.style.transition = '';
+  suspenseReset.style.opacity = '1';
+  ['bridgeBlock','socialProof','urgencyBanner','offerCard'].forEach(id=>{
+    document.getElementById(id).classList.remove('show');
+  });
+
   const barsWrap = document.getElementById('axisBars');
   barsWrap.innerHTML = '';
   AXES.forEach(a=>{
@@ -645,6 +721,9 @@ function renderResults(axisPercents, globalPercent, cat, catColor, weakestAxis, 
   document.getElementById('bridgeQuote').innerHTML =
     `“Tu sembles avoir une technique et des qualités intéressantes.<br><span class="accent">Si ton mental s'aligne, tu es prêt à faire de bonnes prestations.</span>”`;
 
+  document.getElementById('playersCount').textContent = PLAYERS_COACHED;
+  document.getElementById('spotsLeft').textContent = SPOTS_LEFT;
+
   const payLink = document.getElementById('ctaPay');
   const callLink = document.getElementById('ctaCall');
   payLink.href = PAYMENT_LINK_URL;
@@ -653,6 +732,23 @@ function renderResults(axisPercents, globalPercent, cat, catColor, weakestAxis, 
   if(PAYMENT_LINK_URL === "PAYMENT_LINK_URL" || BOOKING_LINK_URL === "BOOKING_LINK_URL"){
     document.getElementById('configWarn').style.display = 'block';
   }
+
+  // reveal séquencé : suspense -> citation -> preuve sociale -> urgence -> offre
+  const suspense = document.getElementById('suspenseText');
+  const bridge = document.getElementById('bridgeBlock');
+  const social = document.getElementById('socialProof');
+  const urgency = document.getElementById('urgencyBanner');
+  const offer = document.getElementById('offerCard');
+
+  setTimeout(()=>{
+    suspense.style.transition = 'opacity .4s ease';
+    suspense.style.opacity = '0';
+    bridge.classList.add('show');
+  }, 1600);
+
+  setTimeout(()=>{ social.classList.add('show'); }, 2200);
+  setTimeout(()=>{ urgency.classList.add('show'); }, 2500);
+  setTimeout(()=>{ offer.classList.add('show'); }, 2800);
 }
 
 function sendLead(axisPercents, globalPercent, cat, weakestAxis){
